@@ -31,7 +31,9 @@ The linter enforces the following rules, categorized by severity:
 These are issues that would almost certainly cause the program to fail during execution. The linter will exit with a non-zero status code if it finds any of these.
 
 *   **Missing Required Fields:** A step is missing a `name` or `tool` field.
-*   **Unresolved Template Variable:** A step uses a variable `{{variable}}` that was not `register`ed in a preceding step.
+*   **Unresolved Template Variable:** A step uses a variable `{{variable}}` that was not defined in the `inputs` section or `register`ed in a preceding step.
+*   **Invalid Input Definition:** An item in the `inputs` section is missing a required field like `name` or `description`.
+*   **Missing Input in `run_apl` Call:** A `run_apl` step fails to provide a value for an input that is marked as `required: true` in the sub-program.
 *   **Invalid Phase Structure:** The program uses phase names not defined in the language reference (e.g., `setup`, `main`, `finalize`).
 *   **Invalid `foreach` Loop:** The `in` variable for a `foreach` loop is not a known collection or is used before it's registered.
 
@@ -70,6 +72,13 @@ main:
       tool: analyze_pr_diff
       # Error: Using a variable that was never registered
       using: "{{undefined_variable}}"
+
+    - name: "Run sub-module without required input"
+      tool: run_apl
+      program: "path/to/sub_module.apl"
+      with_inputs:
+        # The sub_module requires 'input1' but it is not provided here.
+        input2: "some_value"
 ```
 
 The linter would produce the following report:
@@ -83,10 +92,12 @@ File: /home/beloblotskiy/apl/bad_program.apl
     *   Message: The step "Fetch PRs" is missing the required `tool` field.
 *   [ERROR] Line 18: Unresolved Template Variable
     *   Message: The variable `{{undefined_variable}}` is used but has not been registered in a previous step.
+*   [ERROR] Line 21: Missing Input in `run_apl` Call
+    *   Message: The step "Run sub-module without required input" does not provide the required input `input1` for `path/to/sub_module.apl`.
 *   [WARNING] Line 8: Logical Type Mismatch
     *   Message: The `foreach` loop is attempting to iterate over `repo_list_string`, which was produced by `read_file` and is likely a single string. The `split` tool should be used first to turn it into a list.
 
-Validation Failed: 2 errors, 1 warning.
+Validation Failed: 3 errors, 1 warning.
 ```
 
 ## 5. Integration with the APL Runtime

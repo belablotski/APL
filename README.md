@@ -1,2 +1,2 @@
-# apl
+# APL
 Agentic Programming Language

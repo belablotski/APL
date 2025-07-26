@@ -45,8 +45,10 @@ Each phase consists of a list of **Steps**. A step is a single, discrete action 
     *   `read_file`: Read a file from disk.
     *   `write_file`: Write a file to disk.
     *   `git_clone`: Clone a Git repository.
+    *   `log`: Print a message or variable to the console for debugging.
 
 *   **High-Level (Abstract) Tools**: These instruct the agent to perform a complex analysis or task that leverages its core reasoning (CPU). The agent determines the necessary sub-steps on its own.
+    *   `run_apl`: Execute another APL program, passing inputs to it.
     *   `analyze_repo`: Assess the quality standards of a codebase.
     *   `analyze_pr_diff`: Evaluate the craftsmanship of a pull request.
     *   `rank_items`: Sort a collection of items based on qualitative criteria.
@@ -77,21 +79,41 @@ Once a variable is stored in the register, you can reference it in subsequent st
 
 ### Top-Level Structure
 
-An APL file is a YAML document. The top-level keys are typically the program's phases.
+An APL file is a YAML document. The top-level keys define the program's structure, including its inputs and execution phases.
 
 ```yaml
 # APL Program: My Program
-# Version: 0.1
+# Version: 0.2
+
+inputs:
+  - name: input_parameter_1
+    description: "A description of the first parameter."
+    required: true
+  - name: input_parameter_2
+    description: "A description of the second parameter."
+    required: false
+    default: "some_value"
 
 setup:
   # ... list of setup steps ...
 
 main:
-  # ... main processing steps, often a loop ...
+  # ... main processing steps ...
 
 finalize:
   # ... finalization steps ...
 ```
+
+### Program Inputs (`inputs`)
+
+The `inputs` section is a list of parameters the program expects. This makes the program's interface explicit and enables validation. Each input can have the following properties:
+
+*   `name`: The variable name, which can be used via `{{name}}` templating.
+*   `description`: A human-readable explanation of the input.
+*   `required`: A boolean (`true`/`false`). If `true`, the APL runtime will halt if the input is not provided.
+*   `default`: An optional value to use if a `required: false` input is not provided.
+
+Input variables are considered part of the Execution Register from the start of the program.
 
 ### Control Flow
 
@@ -124,9 +146,43 @@ A step can be executed conditionally by adding an `if` clause. The agent will ev
   if: "repo_quality.score > 0.8" # Example condition
 ```
 
+### Debugging
+
+#### `log`
+The `log` tool provides a way to inspect the program's state for debugging purposes by printing information to the console.
+
+*   **`message`**: A string to be printed. It can contain `{{template}}` variables to display their current values.
+*   **`dump_register`**: A boolean (`true`/`false`). If `true`, the entire Execution Register will be printed.
+
+```yaml
+- name: "Log the current loop item"
+  tool: log
+  message: "Currently processing PR: {{pr_url}}"
+
+- name: "Dump all variables before analysis"
+  tool: log
+  dump_register: true
+```
+
 ### Abstract Tool Reference
 
 The power of APL comes from its abstract tools. These tools rely on the agent's "CPU" to interpret the goal and execute it.
+
+#### `run_apl`
+Executes another APL program, enabling modular workflows.
+
+*   **`program`**: The file path to the `.apl` program to be executed.
+*   **`with_inputs`**: A dictionary mapping the `inputs` of the sub-program to variables or literal values from the current program's context.
+
+```yaml
+- name: "Run the PR evaluation module"
+  tool: run_apl
+  program: "examples/best_prs2/evaluate_prs.apl"
+  with_inputs:
+    pr_list_file: "{{ recent_prs_output_file }}"
+    workspace_path: "{{ workspace_path }}"
+    report_output_file: "final_report.md"
+```
 
 #### `analyze_repo`
 Analyzes a software repository to assess its quality standards.
