@@ -1,0 +1,5 @@
+# .aplconfig
+# Defines the default APL specifications for this project.
+
+runtime: APL_RUNTIME.md
+linter: APL_LINTER.md

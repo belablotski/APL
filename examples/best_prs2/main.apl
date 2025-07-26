@@ -1,5 +1,5 @@
 # APL Program: Find and Evaluate the Best Pull Requests
-# Version: 0.1
+# Version: 0.2
 # Description: A driver module that orchestrates the process of finding and evaluating PRs.
 
 inputs:
@@ -13,14 +13,13 @@ inputs:
 setup:
   - name: "Define workspace and intermediate file paths"
     tool: define_variables
-    # Using absolute paths for robustness
-    workspace_path: "/home/beloblotskiy/apl/examples/best_prs2/pr_analysis_workspace"
-    recent_prs_file: "{{ workspace_path }}/recently_merged_prs.txt"
+    workspace_path: "{{module_path}}/pr_analysis_workspace"
+    recent_prs_file: "{{workspace_path}}/recently_merged_prs.txt"
 
 main:
   - name: "Step 1: Load recently merged PRs from repositories"
     tool: run_apl
-    program: "/home/beloblotskiy/apl/examples/best_prs2/load_recently_merged_prs.apl"
+    program: "{{module_path}}/load_recently_merged_prs.apl"
     with_inputs:
       repos_to_scan_file: "{{ repos_list }}"
       workspace_path: "{{ workspace_path }}"
@@ -28,7 +27,7 @@ main:
 
   - name: "Step 2: Evaluate the collected PRs and generate a report"
     tool: run_apl
-    program: "/home/beloblotskiy/apl/examples/best_prs2/evaluate_prs.apl"
+    program: "{{module_path}}/evaluate_prs.apl"
     with_inputs:
       pr_list_file: "{{ recent_prs_file }}"
       workspace_path: "{{ workspace_path }}"

@@ -17,6 +17,20 @@ The language is designed to be readable, structured, and extensible, enabling de
 
 ## 2. Core Concepts
 
+### Project Configuration (`.aplconfig`)
+
+For larger projects, it is recommended to create a `.aplconfig` file in the root directory. This file centralizes the project's APL configuration.
+
+```yaml
+# .aplconfig
+# Defines the default APL specifications for this project.
+
+runtime: APL_RUNTIME.md
+linter: APL_LINTER.md
+```
+
+When executing a program, the APL runtime will automatically discover and use the specifications from this file, simplifying user instructions by removing the need to specify the runtime file in every command.
+
 ### Programs and Phases
 
 An APL program is a single file (typically with a `.apl` extension) written in YAML. The program is divided into distinct **Phases**, which represent the major stages of a workflow. A typical program might have the following phases:
@@ -114,6 +128,12 @@ The `inputs` section is a list of parameters the program expects. This makes the
 *   `default`: An optional value to use if a `required: false` input is not provided.
 
 Input variables are considered part of the Execution Register from the start of the program.
+
+### Built-in Variables
+
+The APL runtime automatically makes certain variables available to a program.
+
+*   `{{module_path}}`: The absolute path to the directory containing the currently executing `.apl` file. This variable is crucial for making modules portable, as it allows for constructing paths to internal files and sub-modules in a relative and reliable way.
 
 ### Control Flow
 
@@ -299,6 +319,31 @@ finalize:
       {% endfor %}
 ```
 
-## 5. Conclusion
+## 5. Executing APL Programs
+
+The APL runtime is invoked by instructing the agent to execute a program or module, providing any necessary inputs.
+
+### Executing a Single File
+
+To run a specific `.apl` file, provide its path to the agent and specify its inputs.
+
+**Instruction format:**
+> Execute the program @path/to/my_program.apl using the rules in @APL_RUNTIME.md, with the following inputs:
+> *   `input_name`: "value"
+> *   `another_input`: "/path/to/some/file.txt"
+
+### Executing a Module
+
+To run a module, provide the path to its directory. The runtime will automatically find and execute the `main.apl` file within that directory.
+
+**Instruction format:**
+> Execute the module @path/to/my_module/ using the rules in @APL_RUNTIME.md, with the following inputs:
+> *   `input_for_main`: "/path/to/data.txt"
+
+### Providing Inputs
+
+Inputs declared in the `inputs` section of a program are provided as a key-value list in the instruction to the agent. The runtime is responsible for parsing these and making them available to the program.
+
+## 6. Conclusion
 
 APL represents a new way of thinking about programming in the age of AI. By abstracting away the low-level implementation details and focusing on high-level goals, APL empowers developers to leverage the full reasoning power of AI agents. This is just the beginning, and we envision a future where APL and similar languages become the standard for orchestrating complex, agent-driven software development and automation.

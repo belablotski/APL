@@ -31,7 +31,7 @@ The linter enforces the following rules, categorized by severity:
 These are issues that would almost certainly cause the program to fail during execution. The linter will exit with a non-zero status code if it finds any of these.
 
 *   **Missing Required Fields:** A step is missing a `name` or `tool` field.
-*   **Unresolved Template Variable:** A step uses a variable `{{variable}}` that was not defined in the `inputs` section or `register`ed in a preceding step.
+*   **Unresolved Template Variable:** A step uses a variable `{{variable}}` that was not defined in the `inputs` section, registered in a preceding step, or is a built-in variable (e.g., `{{module_path}}`).
 *   **Invalid Input Definition:** An item in the `inputs` section is missing a required field like `name` or `description`.
 *   **Missing Input in `run_apl` Call:** A `run_apl` step fails to provide a value for an input that is marked as `required: true` in the sub-program.
 *   **Invalid Phase Structure:** The program uses phase names not defined in the language reference (e.g., `setup`, `main`, `finalize`).
