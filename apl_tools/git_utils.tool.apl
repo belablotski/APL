@@ -68,7 +68,7 @@ tool_definition:
 
     - name: "Update repository because it already exists"
       tool: shell
-      command: "cd {{ final_repo_local_path.stdout }} && git pull"
+      command: "cd {{ final_repo_local_path.stdout }} && git fetch"
       if: "check_dir_exists.exit_code == 0"
     - name: "Set status to 'updated'"
       tool: shell

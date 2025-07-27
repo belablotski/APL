@@ -16,13 +16,14 @@ $ apl --lint my_program.apl
 
 The process involves four main stages:
 
-1.  **Configuration and Tool Discovery:** The linter begins by finding and parsing the `.aplconfig` file. It identifies all `tool_paths` and scans them for `*.tool.apl` definition files. It builds an in-memory **Tool Registry** of all available custom tools, parsing their `inputs` and `outputs` for later validation.
+1.  **Standard Library Loading:** The linter first looks for a file named `APL_STL.yml` in the same directory as the `APL_RUNTIME.md` file specified for the execution environment. If found, it parses this file and adds all defined tools to its internal Tool Registry as agent-native tools.
+2.  **Configuration and Tool Discovery:** The linter then finds and parses the `.aplconfig` file. It identifies all `tool_paths` and scans them for `*.tool.apl` definition files. It adds all discovered custom tools to the Tool Registry, potentially overriding standard library tools of the same name.
+3.  **Parsing and Syntax Validation:** The linter parses the YAML structure of the target `.apl` file. It checks for basic syntax errors and ensures the program conforms to the fundamental structure (e.g., presence of phases, steps with `name` and `tool` keys).
+4.  **Logical Flow and Tool Validation:** This is the core of the linting process. The linter performs a state-aware, sequential analysis of the program. It initializes a "known variables" model with the program's `inputs` and built-in variables (e.g., `module_path`). Then, it simulates the execution path step-by-step. For each step, it first validates that all templated variables used in the step's parameters exist in the current state model. After validation, it updates the state model with any variables registered by that step (via `register` or `set_vars`) before moving to the next one.
 
-2.  **Parsing and Syntax Validation:** The linter parses the YAML structure of the target `.apl` file. It checks for basic syntax errors and ensures the program conforms to the fundamental structure (e.g., presence of phases, steps with `name` and `tool` keys).
-
-3.  **Logical Flow and Tool Validation:** This is the core of the linting process. The linter builds a model of the program's execution flow and state management. It simulates the program's execution path step-by-step. For each step, it performs two key checks:
+    During this simulation, it performs two key checks for each step:
     *   **Tool Existence:** It verifies that the specified `tool` exists. It first checks against the list of **Standard Tools** (`shell`, `read_file`, etc.). If no match is found, it checks against the **Tool Registry**, which contains all discovered **Custom Tools** (both agent-native and APL-defined).
-    *   **Parameter Validation:** It validates that the parameters passed to the tool are correct. For APL-defined tools, it checks the `with_inputs` block against the tool's declared `inputs`. For Standard tools, it checks for required parameters (e.g., `path` for `read_file`). The linter also recognizes the `using` keyword as a valid parameter for passing contextual hints to agent-native tools.
+    *   **Parameter Validation:** It validates that the parameters passed to the tool are correct. For APL-defined tools, it checks the `with_inputs` block against the tool's declared `inputs`. For Standard tools, it checks for required parameters (e.g., `path` for `read_file`). The linter also recognizes the `using` keyword as a valid parameter for passing contextual hints to agent-native tools. For the special `set_vars` tool, the linter will parse the `vars` map and add each key to its internal model of the Execution Register, making them available for subsequent template validation.
 
 4.  **Reporting:** The linter generates a report detailing any errors or warnings it found, along with line numbers and clear explanations. A successful linting process will result in no output.
 
@@ -38,7 +39,7 @@ These are issues that would almost certainly cause the program to fail during ex
 *   **Missing Required Tool Input:** A step using a custom tool fails to provide a value in `with_inputs` for an input marked as `required: true` in the tool's definition file.
 *   **Invalid Tool Parameter:** A step using a built-in tool is missing a required parameter (e.g., using `read_file` without a `path`).
 *   **Missing Required Fields:** A step is missing a `name` or `tool` field.
-*   **Unresolved Template Variable:** A step uses a variable `{{variable}}` that was not defined in the `inputs` section, registered in a preceding step, or is a built-in variable.
+*   **Unresolved Template Variable:** A step uses a variable `{{variable}}` that has not been defined in the program's `inputs` or registered by a *lexically preceding* step. The linter performs a sequential check, so a variable must be known to the state model *before* the current step is analyzed.
 *   **Invalid Input Definition:** An item in the `inputs` section is missing a required field like `name` or `description`.
 *   **Missing Input in `run_apl` Call:** A `run_apl` step fails to provide a value for an input that is marked as `required: true` in the sub-program.
 *   **Invalid Phase Structure:** The program uses phase names not defined in the language reference (e.g., `setup`, `main`, `finalize`).

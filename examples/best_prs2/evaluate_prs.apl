@@ -46,23 +46,29 @@ main:
       register: repo_url
 
     - name: "Clone or Update Repository"
-      tool: git_clone
-      repo_path: "{{repo_url}}"
-      workspace: "{{workspace_path}}"
-      if_not_exists: true
-      register: cloned_repo_path
+      tool: ensure_repo_is_cloned
+      with_inputs:
+        repo_url: "{{ repo_url.stdout }}"
+        workspace_path: "{{ workspace_path }}"
+      register: repo_info
 
     - name: "Log repository cloning"
       tool: log
-      message: "Successfully cloned or found repository at: {{cloned_repo_path}}"
+      message: "Repo is ready. Path={{ repo_info.repo_local_path }}, Status={{ repo_info.status }}"
+
+    - name: "Set relative path for checkout"
+      tool: set_vars
+      vars:
+        relative_repo_path: "{{ repo_info.repo_local_path | remove_prefix: '/home/beloblotskiy/apl/' }}"
 
     - name: "Checkout Merge Commit"
-      tool: git_checkout
-      local_repo_path: "{{cloned_repo_path}}"
-      commit: "{{pr_metadata.mergeCommit.oid}}"
+      tool: shell
+      command: "git checkout {{ pr_metadata.mergeCommit.oid }}"
+      working_directory: "{{ relative_repo_path }}"
 
     - name: "Analyze Repository Quality Standards"
       tool: analyze_repo
+      path: "{{ repo_info.repo_local_path }}"
       register: repo_quality
       using:
         - "build_files:pom.xml,package.json,build.gradle"
@@ -70,4 +76,4 @@ main:
 
     - name: "Log repo_quality result"
       tool: log
-      message: "repo_quality result: {{repo_quality}}"
+      message: "repo_quality result: {{repo_quality.result}}"

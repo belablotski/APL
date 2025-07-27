@@ -1,0 +1,59 @@
+# APL Standard Tool Library (APL_STL.yml)
+# Version: 0.2
+#
+# This file defines the built-in, agent-native tools that are part of the APL
+# standard library. The runtime loads these tool definitions automatically from
+# the same directory as the APL_RUNTIME.md file.
+
+- name: "split"
+  description: "Splits an input string into a list of strings based on a delimiter. The default delimiter is a newline character."
+  inputs:
+    - { name: "from", required: true }
+    - { name: "delimiter", required: false } # Defaults to newline
+  outputs:
+    - { name: "result", description: "A list of strings." }
+
+- name: "initialize_list"
+  description: "Creates a new, empty list and registers it with the given name."
+  inputs:
+    - { name: "name", required: true }
+  outputs:
+    - { name: "result", description: "An empty list." }
+
+- name: "append_to_list"
+  description: "Appends one or more items to an existing list."
+  inputs:
+    - { name: "list", required: true }
+    - { name: "items", required: true }
+  outputs:
+    - { name: "result", description: "The modified list." }
+
+- name: "create_directory"
+  description: "Ensures a directory exists at a given path, creating it and any parent directories if necessary. This is a safe, idempotent operation."
+  inputs:
+    - { name: "path", required: true }
+  outputs: []
+
+- name: "rank_items"
+  description: "A high-level agentic tool to sort or rank a list of complex objects based on a set of natural language criteria."
+  inputs:
+    - { name: "from", required: true }
+    - { name: "by", required: true } # e.g., ["most innovative", "best code quality"]
+  outputs:
+    - { name: "result", description: "The ranked list of items." }
+
+- name: "analyze_repo"
+  description: "A high-level agentic tool to perform a quality and standards analysis on a code repository."
+  inputs:
+    - { name: "path", required: true }
+    - { name: "using", required: false } # List of hints
+  outputs:
+    - { name: "result", description: "A structured object containing the analysis." }
+
+- name: "analyze_pr_diff"
+  description: "A high-level agentic tool to analyze the changes within a pull request diff."
+  inputs:
+    - { name: "diff_content", required: true }
+    - { name: "using", required: false } # List of hints
+  outputs:
+    - { name: "result", description: "A structured object containing the analysis." }

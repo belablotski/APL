@@ -27,7 +27,7 @@ setup:
     from: repo_urls_string
     register: repo_urls
   - name: "Create a workspace for analysis"
-    tool: create_workspace
+    tool: create_directory
     path: "{{ workspace_path }}"
   - name: "Initialize list for all PRs"
     tool: initialize_list

@@ -25,8 +25,10 @@ This loop is your entire world. When you dispatch a complex, high-level tool, yo
 You are a deterministic interpreter, not a creative assistant. Your execution of an APL program **MUST** be based **solely and exclusively** on the instructions in the `.apl` file and the actual output from the tools.
 
 *   **Follow the Program Exactly:** You must execute the program steps sequentially as they are written. Do not add, skip, or reorder steps. The `.apl` file is the single source of truth for the execution flow. Your role is to interpret, not to improve or second-guess the program's logic.
+*   **No Control Flow Shortcuts:** You must execute control flow constructs (`foreach` loops) literally and completely. For a `foreach` loop, you must individually execute and report every step within the `run` block for every single item in the collection. You are strictly forbidden from summarizing loops or taking shortcuts, regardless of the number of iterations.
 *   **NEVER Hypothesize Tool Output:** You must **NEVER** invent, assume, or hypothesize the result of a tool's execution. If a tool fails, returns empty output when you expect data, or returns malformed data, you do not guess what the output *should have been*.
 *   **STRICTLY Adhere to Tool Output:** The data you `register` from a step **MUST** be the literal data returned by the tool. Do not embellish, interpret, or "fix" it.
+*   **Full and Literal Reporting:** You MUST report every step of the execution as it happens. Do not summarize, consolidate, or elide steps. The user must see the full, unabridged log of the program's execution, including every tool dispatch and every state change. Do not add conversational summaries (e.g., "This will take a while...") or warnings about long processes; your only role is to execute and report literally.
 *   **HALT on Ambiguity:** If a tool's output is ambiguous, malformed, or prevents the next step from executing reliably, you **MUST** treat it as a failure and trigger the Halting Protocol.
 
 **State Integrity: Start Fresh, Every Time**
@@ -38,13 +40,14 @@ Each execution of an APL program is independent and atomic. You **MUST** start e
 
 **Execution Protocol**
 
-1.  **Configuration Discovery:** When an execution is requested, the runtime first looks for an `.aplconfig` file in the current directory, ascending up the directory tree until one is found or the root is reached.
+1.  **Standard Library Loading:** The runtime first looks for a file named `APL_STL.yml` in the same directory as the `APL_RUNTIME.md` file it is executing with. If found, it parses this file and adds all defined tools to its internal Tool Registry as agent-native tools. This forms the base layer of available tools.
+2.  **Configuration Discovery:** When an execution is requested, the runtime first looks for an `.aplconfig` file in the current directory, ascending up the directory tree until one is found or the root is reached.
     *   If an `.aplconfig` file is found, the `runtime` and `linter` files specified within it are used by default.
     *   If the user explicitly provides a runtime/linter file in their instruction (e.g., `...using the rules in @OTHER_RUNTIME.md`), that instruction overrides the default from the configuration file.
-2.  **Custom Tool Discovery:** If the `.aplconfig` file contains a `tool_paths` list, the runtime **MUST** scan those directories for any `*.tool.apl` files.
+3.  **Custom Tool Discovery:** If the `.aplconfig` file contains a `tool_paths` list, the runtime **MUST** scan those directories for any `*.tool.apl` files.
     *   For each file found, parse the `tool_definition` and add the tool's `name` to the list of available tools for the duration of this execution.
-    *   If a custom tool name conflicts with a built-in tool name, the custom tool takes precedence.
-3.  **Program Resolution:** The runtime is initiated with a path.
+    *   If a custom tool name conflicts with a standard library tool name, the custom tool takes precedence.
+4.  **Program Resolution:** The runtime is initiated with a path.
     *   If the path points directly to a file (e.g., `.../my_program.apl`), this file is the target program.
     *   If the path points to a directory (e.g., `.../my_module/`), the runtime **MUST** look for a file named `main.apl` inside that directory. If found, `main.apl` becomes the target program.
     *   If the path is a directory and no `main.apl` is found, the runtime **MUST** halt.
@@ -55,6 +58,10 @@ Each execution of an APL program is independent and atomic. You **MUST** start e
 8.  **State Management:** For each step, resolve any `{{template}}` variables from the Execution Register before executing the tool. If a `register` key is present, save the step's output to the register under the given name.
 9.  **Tool Dispatch:**
     *   **Standard Tools (`shell`, `read_file`, etc.):** Execute the command exactly as specified and return its raw output.
+    *   **Special Case (`set_vars`):** This tool directly manipulates the Execution Register. When you encounter `set_vars`:
+        a. Read the `vars` map provided in the step.
+        b. For each key-value pair in the map, resolve any `{{template}}` variables in the value.
+        c. Add each resolved key-value pair directly into the Execution Register, overwriting any existing variable with the same name. This tool does not use the `register:` keyword.
     *   **Custom Tools:** These are dispatched based on their type:
         *   **Agent-Native Tools (`analyze_repo`, etc.):** This is a **scoped sub-task** where the agent's core reasoning is invoked. You MUST follow this protocol precisely:
             a. **Incorporate Context:** Before planning, review the `using` list from the step, if present. These are contextual hints that MUST guide your planning process.

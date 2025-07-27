@@ -54,20 +54,26 @@ Each phase consists of a list of **Steps**. A step is a single, discrete action 
   register: pr_metadata
 ```
 
-### Tools
+### Tools and the Resolution Hierarchy
 
-**Tools** are the fundamental "verbs" of APL. They represent the agent's capabilities and are divided into two categories: Standard and Custom.
+**Tools** are the fundamental "verbs" of APL. They represent the agent's capabilities. The APL runtime discovers and resolves tools according to a strict hierarchy, allowing for a powerful system of defaults and overrides.
 
-*   **Standard Tools**: These are built-in tools that map directly to a specific, concrete action. They are the basic building blocks of any APL program.
+The hierarchy is as follows:
+
+1.  **Standard Built-in Tools**: These are the lowest-level, non-agentic primitives that are an intrinsic part of the runtime. They are always available and cannot be overridden.
+    *   `set_vars`: Define one or more variables and save them to the Execution Register.
     *   `shell`: Execute a shell command.
     *   `read_file`: Read a file from disk.
     *   `write_file`: Write a file to disk.
     *   `git_clone`: Clone a Git repository.
     *   `log`: Print a message or variable to the console for debugging.
+    *   `run_apl`: Execute another APL program as a sub-task.
 
-*   **Custom Tools**: These are high-level, abstract tools that direct the agent to perform a complex task requiring its own reasoning and planning. They are discovered by the runtime and can be of two kinds:
-    *   **Agent-Native Tools**: These are complex tools provided by the APL runtime itself, where the execution logic is handled by the agent's core reasoning engine (e.g., `analyze_repo`, `analyze_pr_diff`, `rank_items`).
-    *   **APL-Defined Tools**: These are tools defined by users in `*.tool.apl` files. They encapsulate a reusable APL workflow, effectively creating a library of custom functions. (See Section 4: Custom Tools).
+2.  **Custom APL-Defined Tools (`*.tool.apl`)**: These are tools defined by users in `*.tool.apl` files within the project's `tool_paths`. They contain a concrete `run` block with a sequence of steps. Because they are the most specific, they are checked first among all non-standard tools and can override any agent-native tool of the same name.
+
+3.  **Custom Agent-Native Tools (`agent_native_tools.yml`)**: This optional project-level manifest file allows developers to define project-specific abstract tools. These tools have a defined interface (inputs/outputs) but no `run` block; their execution is delegated to the agent's core intelligence. They can override tools from the Standard Library.
+
+4.  **Standard Library Agent-Native Tools (`APL_STL.yml`)**: This is the base layer of agent-native tools that comes bundled with the APL runtime. The `APL_STL.yml` file is located alongside the `APL_RUNTIME.md` and provides a rich set of universal, abstract tools (e.g., `split`, `rank_items`) that are available in any APL program.
 
 ### State Management (`register`)
 
@@ -185,6 +191,24 @@ A step can be executed conditionally by adding an `if` clause. The agent will ev
   tool: git_clone
   repo_path: "{{pr_metadata.repo_path}}"
   if: "repo_quality.score > 0.8" # Example condition
+```
+
+### State Management
+
+#### `set_vars`
+The `set_vars` tool is the primary mechanism for defining and registering one or more variables directly. This is useful for setting up configuration, defining constants, or constructing complex variables from existing ones.
+
+*   **`vars`**: A key-value map. Each key becomes a variable name in the Execution Register, and its corresponding value is assigned to it. Values can use templates to reference previously registered variables.
+
+```yaml
+- name: "Define workspace and file paths"
+  tool: set_vars
+  vars:
+    workspace_path: "{{module_path}}/pr_analysis_workspace"
+    report_name: "final_report.md"
+    full_report_path: "{{workspace_path}}/{{report_name}}"
+    is_debug_mode: false
+    max_retries: 3
 ```
 
 ### Debugging
