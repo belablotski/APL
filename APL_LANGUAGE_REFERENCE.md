@@ -1,4 +1,4 @@
-# APL: Agentic Programming Language - v0.1
+# APL: Agentic Programming Language - v0.2
 
 ## 1. Introduction
 
@@ -27,6 +27,10 @@ For larger projects, it is recommended to create a `.aplconfig` file in the root
 
 runtime: APL_RUNTIME.md
 linter: APL_LINTER.md
+
+# Optional: List of directories where the runtime should look for custom tool definitions.
+tool_paths:
+  - ./apl_tools/
 ```
 
 When executing a program, the APL runtime will automatically discover and use the specifications from this file, simplifying user instructions by removing the need to specify the runtime file in every command.
@@ -52,20 +56,18 @@ Each phase consists of a list of **Steps**. A step is a single, discrete action 
 
 ### Tools
 
-**Tools** are the fundamental "verbs" of APL. They represent the agent's capabilities. Tools can be low-level and specific, or high-level and abstract.
+**Tools** are the fundamental "verbs" of APL. They represent the agent's capabilities and are divided into two categories: Standard and Custom.
 
-*   **Low-Level Tools**: These map directly to a specific action.
+*   **Standard Tools**: These are built-in tools that map directly to a specific, concrete action. They are the basic building blocks of any APL program.
     *   `shell`: Execute a shell command.
     *   `read_file`: Read a file from disk.
     *   `write_file`: Write a file to disk.
     *   `git_clone`: Clone a Git repository.
     *   `log`: Print a message or variable to the console for debugging.
 
-*   **High-Level (Abstract) Tools**: These instruct the agent to perform a complex analysis or task that leverages its core reasoning (CPU). The agent determines the necessary sub-steps on its own.
-    *   `run_apl`: Execute another APL program, passing inputs to it.
-    *   `analyze_repo`: Assess the quality standards of a codebase.
-    *   `analyze_pr_diff`: Evaluate the craftsmanship of a pull request.
-    *   `rank_items`: Sort a collection of items based on qualitative criteria.
+*   **Custom Tools**: These are high-level, abstract tools that direct the agent to perform a complex task requiring its own reasoning and planning. They are discovered by the runtime and can be of two kinds:
+    *   **Agent-Native Tools**: These are complex tools provided by the APL runtime itself, where the execution logic is handled by the agent's core reasoning engine (e.g., `analyze_repo`, `analyze_pr_diff`, `rank_items`).
+    *   **APL-Defined Tools**: These are tools defined by users in `*.tool.apl` files. They encapsulate a reusable APL workflow, effectively creating a library of custom functions. (See Section 4: Custom Tools).
 
 ### State Management (`register`)
 
@@ -81,6 +83,25 @@ APL provides a simple mechanism for state management, representing the agent's "
 ### Templating
 
 Once a variable is stored in the register, you can reference it in subsequent steps using the `{{variable_name}}` syntax. This allows you to chain steps together, passing data from one to the next.
+
+### Providing Context to Agent-Native Tools (`using`)
+
+Some high-level, agent-native tools (e.g., `analyze_repo`, `analyze_pr_diff`) can be guided by providing a list of contextual hints. The `using` keyword is designed for this purpose. It allows you to pass a list of strings that the agent's reasoning engine can use to focus its analysis.
+
+The format is a YAML list of strings. While the content of each string is specific to the tool, a common convention is a `key:value` format to provide specific parameters or configurations.
+
+**Example:**
+
+```yaml
+- name: "Analyze Repository Quality Standards"
+  tool: analyze_repo
+  register: repo_quality
+  using:
+    - "build_files:pom.xml,package.json"
+    - "static_analysis_tools:checkstyle,eslint,ruff"
+```
+
+In this example, the `using` list tells the `analyze_repo` tool to specifically look for those build files and static analysis configurations when assessing the repository. This is distinct from the structured `with_inputs` used for APL-defined tools, as it provides flexible, advisory hints rather than rigid, required parameters.
 
 ```yaml
 # The `pr_url` variable is defined by the `foreach` loop
@@ -184,68 +205,71 @@ The `log` tool provides a way to inspect the program's state for debugging purpo
   dump_register: true
 ```
 
-### Abstract Tool Reference
+## 4. Custom Tools
 
-The power of APL comes from its abstract tools. These tools rely on the agent's "CPU" to interpret the goal and execute it.
+APL can be extended by creating reusable, high-level tools. This is the equivalent of creating a library in a conventional programming language. It allows you to abstract complex logic into a single, callable unit.
 
-#### `run_apl`
-Executes another APL program, enabling modular workflows.
+### Tool Definition File (`*.tool.apl`)
 
-*   **`program`**: The file path to the `.apl` program to be executed.
-*   **`with_inputs`**: A dictionary mapping the `inputs` of the sub-program to variables or literal values from the current program's context.
+A custom tool is defined in a `*.tool.apl` file. This file specifies the tool's public interface (`inputs`, `outputs`) and its private implementation (`run`).
 
 ```yaml
-- name: "Run the PR evaluation module"
-  tool: run_apl
-  program: "examples/best_prs2/evaluate_prs.apl"
+# /apl_tools/git_utils.tool.apl
+tool_definition:
+  name: ensure_repo_is_cloned
+  description: "Clones a repository if it doesn't exist, or pulls latest changes if it does."
+
+  inputs:
+    - name: repo_url
+      required: true
+    - name: workspace_path
+      required: true
+
+  outputs:
+    - name: repo_local_path
+      description: "The absolute path to the repository on disk."
+    - name: status
+      description: "Either 'cloned' or 'updated'."
+
+  run:
+    # ... a standard APL workflow to implement the tool's logic ...
+```
+
+### Tool Discovery
+
+The APL runtime discovers custom tools by searching in the directories specified in the `.aplconfig` file's `tool_paths` list.
+
+```yaml
+# .aplconfig
+tool_paths:
+  - ./apl_tools/
+  - ./shared/tools/
+```
+
+### Using a Custom Tool
+
+Once defined and discovered, a custom tool can be used in any program just like a built-in one. You use the `with_inputs` key to pass parameters to it. The `register` key saves the tool's `outputs` as a structured object.
+
+```yaml
+- name: "Get the Gemini CLI repository"
+  tool: ensure_repo_is_cloned # Our new high-level tool
   with_inputs:
-    pr_list_file: "{{ recent_prs_output_file }}"
-    workspace_path: "{{ workspace_path }}"
-    report_output_file: "final_report.md"
+    repo_url: "https://github.com/google/gemini-cli.git"
+    workspace_path: "{{ ws_path }}"
+  register: gemini_cli_repo # The 'outputs' are saved here
+
+- name: "Log the result"
+  tool: log
+  message: "Repo is ready. Path={{ gemini_cli_repo.repo_local_path }}, Status={{ gemini_cli_repo.status }}"
 ```
 
-#### `analyze_repo`
-Analyzes a software repository to assess its quality standards.
-
-*   **`using`**: A list of principles or files to guide the analysis.
-    *   `build_files`: e.g., `pom.xml`, `package.json`
-    *   `static_analysis_tools`: e.g., `checkstyle`, `eslint`
-    *   `code_formatters`: e.g., `prettier`, `spotless`
-*   **`register`**: Saves a structured object containing the analysis results (e.g., a quality score).
-
-```yaml
-- name: "Analyze Repository Quality Standards"
-  tool: analyze_repo
-  register: repo_quality
-  using:
-    - "build_files:pom.xml,package.json"
-    - "static_analysis_tools:checkstyle,eslint,ruff"
-```
-
-#### `analyze_pr_diff`
-Analyzes a code diff to evaluate its quality and purpose.
-
-*   **`using`**: A list of evaluation criteria.
-    *   `categorize_change`: A list of possible change types (e.g., `Feature`, `Fix`, `Refactor`).
-    *   `evaluate_craftsmanship`: A list of principles (e.g., `Clarity`, `Consistency`, `Testing`).
-*   **`register`**: Saves a structured object with the analysis summary.
-
-```yaml
-- name: "Analyze PR Contribution"
-  tool: analyze_pr_diff
-  register: pr_analysis
-  using:
-    - "categorize_change:Architectural,Feature,API,Testing,Fix,Docs"
-    - "evaluate_craftsmanship:Clarity,Consistency,Comments,Maintainability,Patterns"
-```
-
-## 4. Example Program: `best_pr_finder.apl`
+## 5. Example Program: `best_pr_finder.apl`
 
 This program directs an agent to find and rank the top 5 pull requests from a list.
 
 ```yaml
 # APL Program: Best Pull Request Finder
-# Version: 0.1
+# Version: 0.2
 # Description: Analyzes a list of PRs to find and rank the top 5 "masterpieces."
 
 setup:
@@ -269,10 +293,11 @@ main:
       register: pr_metadata
 
     - name: "Clone or Update Repository"
-      tool: git_clone
-      repo_path: "{{pr_metadata.repo_path}}"
-      workspace: "{{workspace_path}}"
-      if_not_exists: true
+      tool: ensure_repo_is_cloned # Using a custom tool
+      with_inputs:
+        repo_url: "{{pr_metadata.repo_path}}"
+        workspace_path: "{{workspace_path}}"
+      register: repo_info
 
     - name: "Checkout Merge Commit"
       tool: git_checkout
@@ -319,7 +344,7 @@ finalize:
       {% endfor %}
 ```
 
-## 5. Executing APL Programs
+## 6. Executing APL Programs
 
 The APL runtime is invoked by instructing the agent to execute a program or module, providing any necessary inputs.
 
@@ -344,6 +369,6 @@ To run a module, provide the path to its directory. The runtime will automatical
 
 Inputs declared in the `inputs` section of a program are provided as a key-value list in the instruction to the agent. The runtime is responsible for parsing these and making them available to the program.
 
-## 6. Conclusion
+## 7. Conclusion
 
-APL represents a new way of thinking about programming in the age of AI. By abstracting away the low-level implementation details and focusing on high-level goals, APL empowers developers to leverage the full reasoning power of AI agents. This is just the beginning, and we envision a future where APL and similar languages become the standard for orchestrating complex, agent-driven software development and automation.
+APL represents a new way of thinking about programming in the age of AI. By abstracting away the low-level implementation details and focusing on high-level goals, APL empowers developers to leverage the full reasoning power of AI agents. The addition of custom tools provides the foundation for building robust, shared libraries of agent capabilities. This is just the beginning, and we envision a future where APL and similar languages become the standard for orchestrating complex, agent-driven software development and automation.

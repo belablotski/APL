@@ -196,3 +196,11 @@ finalize:
     to_file: "./results/{{apl_process_id}}.json"
     content: "{{analysis_result}}"
 ```
+
+#### 6. Import tool from library
+
+We'll need some sort of construct
+
+```
+import custom_tool from library
+```
