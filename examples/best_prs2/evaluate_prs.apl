@@ -37,20 +37,29 @@ main:
   run:
     - name: "Fetch PR Metadata"
       tool: shell
-      command: "gh pr view {{pr_url}} --json author,title,mergeCommit,url,repository"
+      command: "gh pr view {{pr_url}} --json author,title,mergeCommit,url,headRepository"
       register: pr_metadata
+
+    - name: "Get repo URL from PR URL"
+      tool: shell
+      command: "echo {{pr_url}} | cut -d'/' -f1-5"
+      register: repo_url
 
     - name: "Clone or Update Repository"
       tool: git_clone
-      repo_path: "{{pr_metadata.repository.url}}"
+      repo_path: "{{repo_url}}"
       workspace: "{{workspace_path}}"
       if_not_exists: true
+      register: cloned_repo_path
+
+    - name: "Log repository cloning"
+      tool: log
+      message: "Successfully cloned or found repository at: {{cloned_repo_path}}"
 
     - name: "Checkout Merge Commit"
       tool: git_checkout
-      repo_path: "{{pr_metadata.repository.url}}"
+      local_repo_path: "{{cloned_repo_path}}"
       commit: "{{pr_metadata.mergeCommit.oid}}"
-      workspace: "{{workspace_path}}"
 
     - name: "Analyze Repository Quality Standards"
       tool: analyze_repo
@@ -59,48 +68,6 @@ main:
         - "build_files:pom.xml,package.json,build.gradle"
         - "static_analysis_tools:checkstyle,eslint,ruff,spotless"
 
-    - name: "Analyze PR Contribution"
-      tool: analyze_pr_diff
-      register: pr_analysis
-      using:
-        - "categorize_change:Architectural,Feature,API,Testing,Fix,Docs,Build"
-        - "evaluate_craftsmanship:Clarity,Consistency,Thoughtful Commenting,Durability,Pattern Recognition"
-
-    - name: "Combine PR data and analysis"
-      tool: combine_objects
-      into: pr_full_details
-      from:
-        - pr_metadata
-        - repo_quality
-        - pr_analysis
-
-    - name: "Append result to global list"
-      tool: append_to_list
-      list: pr_analysis_results
-      item: "{{pr_full_details}}"
-
-finalize:
-  - name: "Rank PRs based on analysis"
-    tool: rank_items
-    from: pr_analysis_results
-    by:
-      - "pr_analysis.craftsmanship_score"
-      - "pr_analysis.category_score"
-      - "repo_quality.score"
-    top_n: "{{ top_n }}"
-    register: top_5_prs
-
-  - name: "Generate final report"
-    tool: write_file
-    to_file: "{{ report_output_file }}"
-    content_template: |
-      # Top {{ top_n }} Pull Requests of the Week
-
-      {% for pr in top_5_prs %}
-      ## {{loop.index}}. [{{pr.metadata.title}}]({{pr.url}})
-      **Author**: {{pr.metadata.author.login}}
-
-      **Why it's a masterpiece**: {{pr.analysis.summary}}
-      * **Key Learning**: {{pr.analysis.learning_point}}
-      ---
-      {% endfor %}
+    - name: "Log repo_quality result"
+      tool: log
+      message: "repo_quality result: {{repo_quality}}"

@@ -38,20 +38,26 @@ main:
     in: repo_urls
     loop_var: repo_url
   run:
-    - name: "Fetch last N merged PRs"
+    - name: "Fetch last N merged PRs as a clean list"
       tool: shell
-      command: "gh pr list --repo {{repo_url}} --state merged --limit {{max_prs_per_repo}} --json url"
-      register: pr_urls_for_repo
+      command: "gh pr list --repo {{repo_url}} --state merged --limit {{max_prs_per_repo}} --json url --template '{{range .}}{{.url}}
+{{end}}'"
+      register: pr_urls_string_for_repo
+
+    - name: "Split PR URLs into a list"
+      tool: split
+      from: pr_urls_string_for_repo
+      register: pr_urls_list_for_repo
 
     - name: "Append PR URLs to a global list"
       tool: append_to_list
       list: all_pr_urls
-      items: "{{pr_urls_for_repo}}"
+      items: "{{pr_urls_list_for_repo}}"
 
 finalize:
   - name: "Generate PR list text file"
     tool: write_file
     to_file: "{{ recent_prs_output_file }}"
     content_template: |
-      {% for pr in all_pr_urls %}{{pr.url}}
+      {% for pr_url in all_pr_urls %}{{ pr_url }}
       {% endfor %}
