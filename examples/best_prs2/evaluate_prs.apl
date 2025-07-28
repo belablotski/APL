@@ -59,7 +59,7 @@ main:
     - name: "Set relative path for checkout"
       tool: set_vars
       vars:
-        relative_repo_path: "{{ repo_info.repo_local_path | remove_prefix: '/home/beloblotskiy/apl/' }}"
+        relative_repo_path: "{{ repo_info.repo_local_path | remove_prefix: '/home/belablotski/apl/' }}"
 
     - name: "Checkout Merge Commit"
       tool: shell

@@ -25,7 +25,7 @@ For example, to find the "best" pull requests in a repository, the instructions 
 For each pull request, perform the following analysis steps...
 ...
 ```
-*(@/home/beloblotskiy/apl/examples/best_prs/insructions_to_agent.md)*
+*[./examples/best_prs/insructions_to_agent.md](./examples/best_prs/insructions_to_agent.md)*
 
 While a human could follow these instructions, an AI agent might interpret them differently each time, leading to unpredictable behavior. It might skip steps, make assumptions, or "hallucinate" results.
 
