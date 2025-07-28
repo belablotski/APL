@@ -84,7 +84,7 @@ The linter would produce the following report:
 ```
 APL VALIDATION REPORT
 
-File: /home/beloblotskiy/apl/bad_program.apl
+File: /home/belablotski/apl/bad_program.apl
 
 *   [ERROR] Line 5: Invalid Tool Parameter
     *   Message: The step "Load repo list" uses the built-in tool `read_file` but is missing the required `path` parameter.

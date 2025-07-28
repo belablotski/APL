@@ -63,7 +63,7 @@ main:
         - "static_analysis_tools:checkstyle,eslint,ruff"
 ...
 ```
-*(@/home/beloblotskiy/apl/examples/best_prs/program_to_agent.apl)*
+*[./examples/best_prs/program_to_agent.apl](./examples/best_prs/program_to_agent.apl)*
 
 This APL program achieves the same goal but in a way that is completely deterministic and verifiable.
 
