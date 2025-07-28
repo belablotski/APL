@@ -42,6 +42,7 @@
   outputs:
     - { name: "result", description: "The ranked list of items." }
 
+# TODO: Move to project specific tool library
 - name: "analyze_repo"
   description: "A high-level agentic tool to perform a quality and standards analysis on a code repository."
   inputs:

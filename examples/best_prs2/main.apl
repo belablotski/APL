@@ -22,13 +22,13 @@ setup:
     command: "mkdir -p {{ workspace_path }}"
 
 main:
-#  - name: "Step 1: Load recently merged PRs from repositories"
-#    tool: run_apl
-#    program: "{{module_path}}/load_recently_merged_prs.apl"
-#    with_inputs:
-#      repos_to_scan_file: "{{ repos_list }}"
-#      workspace_path: "{{ workspace_path }}"
-#      recent_prs_output_file: "{{ recent_prs_file }}"
+  - name: "Step 1: Load recently merged PRs from repositories"
+    tool: run_apl
+    program: "{{module_path}}/load_recently_merged_prs.apl"
+    with_inputs:
+      repos_to_scan_file: "{{ repos_list }}"
+      workspace_path: "{{ workspace_path }}"
+      recent_prs_output_file: "{{ recent_prs_file }}"
 
   - name: "Step 2: Evaluate the collected PRs and generate a report"
     tool: run_apl
