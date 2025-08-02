@@ -1,4 +1,4 @@
-# APL: Agentic Programming Language - v0.2
+# APL: Agentic Programming Language - v0.3
 
 ## 1. Introduction
 
@@ -69,7 +69,7 @@ The hierarchy is as follows:
     *   `log`: Print a message or variable to the console for debugging.
     *   `run_apl`: Execute another APL program as a sub-task.
 
-2.  **Custom APL-Defined Tools (`*.tool.apl`)**: These are tools defined by users in `*.tool.apl` files within the project's `tool_paths`. They contain a concrete `run` block with a sequence of steps. Because they are the most specific, they are checked first among all non-standard tools and can override any agent-native tool of the same name.
+2.  **Custom APL-Defined Tools (`*.tool.apl`)**: These are tools defined by users in `*.tool.apl` files within the project's `tool_paths` (global) or a program's `local_tool_paths` (local). They contain a concrete `run` block with a sequence of steps. Because they are the most specific, they are checked first among all non-standard tools and can override any agent-native tool of the same name.
 
 3.  **Custom Agent-Native Tools (`agent_native_tools.yml`)**: This optional project-level manifest file allows developers to define project-specific abstract tools. These tools have a defined interface (inputs/outputs) but no `run` block; their execution is delegated to the agent's core intelligence. They can override tools from the Standard Library.
 
@@ -120,11 +120,15 @@ In this example, the `using` list tells the `analyze_repo` tool to specifically 
 
 ### Top-Level Structure
 
-An APL file is a YAML document. The top-level keys define the program's structure, including its inputs and execution phases.
+An APL file is a YAML document. The top-level keys define the program's structure, including its inputs, local tools, and execution phases.
 
 ```yaml
 # APL Program: My Program
-# Version: 0.2
+# Version: 0.3
+
+# Optional: Declare program-specific tools.
+local_tool_paths:
+  - ./tools/
 
 inputs:
   - name: input_parameter_1
@@ -166,7 +170,7 @@ The APL runtime automatically makes certain variables available to a program.
 
 #### `foreach`
 
-The most common control flow mechanism is the `foreach` loop, used within a phase. It iterates over a collection stored in the register. The `loop_var` defines the name of the variable for each item in the collection.
+The `foreach` loop is used to iterate over a collection stored in the register. The `loop_var` defines the name of the variable for each item in the collection.
 
 ```yaml
 main:
@@ -180,6 +184,31 @@ main:
       command: "gh pr view {{pr_url}} --json author,title,mergeCommit"
       register: pr_metadata
     # ... more steps ...
+```
+
+#### `while` (Conditional Loop)
+
+The `while` loop provides a more flexible way to loop by executing a block of steps as long as a condition is true. The condition is evaluated before each iteration.
+
+*   **`while`**: A condition that the agent evaluates. The loop continues as long as the condition is met.
+*   **`run`**: A list of steps to execute in each iteration.
+
+It is the programmer's responsibility to ensure the loop condition eventually becomes false to prevent infinite loops. This is typically done by updating a variable within the `run` block.
+
+```yaml
+main:
+  while: "game_over == false and turn <= 9"
+  run:
+    - name: "Display Board"
+      tool: log
+      message: "Turn {{turn}}: Player {{current_player}}'s move"
+    
+    # ... steps to play the game ...
+
+    - name: "Increment Turn Counter"
+      tool: set_vars
+      vars:
+        turn: "{{ turn + 1 }}"
 ```
 
 #### Execution Directives (`directives`)
@@ -282,13 +311,27 @@ tool_definition:
 
 ### Tool Discovery
 
-The APL runtime discovers custom tools by searching in the directories specified in the `.aplconfig` file's `tool_paths` list.
+#### Global Tool Discovery (`.aplconfig`)
+The APL runtime discovers globally shared custom tools by searching in the directories specified in the `.aplconfig` file's `tool_paths` list. These tools are available to all APL programs in the project.
 
 ```yaml
 # .aplconfig
 tool_paths:
   - ./apl_tools/
   - ./shared/tools/
+```
+
+#### Local Tool Discovery (`local_tool_paths`)
+For tools that are specific to a single program or module, you can define them in a `local_tool_paths` list at the top level of your `.apl` file. This makes the program self-contained and avoids cluttering the global tool namespace.
+
+The paths are relative to the location of the `.apl` file.
+
+```yaml
+# main.apl
+local_tool_paths:
+  - ./tools/ # Looks for *.tool.apl files in a 'tools' subdirectory
+
+# ... rest of the program ...
 ```
 
 ### Using a Custom Tool

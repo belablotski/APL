@@ -65,9 +65,10 @@ Each execution of an APL program is independent and atomic. You **MUST** start e
 2.  **Configuration Discovery:** When an execution is requested, the runtime first looks for an `.aplconfig` file in the current directory, ascending up the directory tree until one is found or the root is reached.
     *   If an `.aplconfig` file is found, the `runtime` and `linter` files specified within it are used by default.
     *   If the user explicitly provides a runtime/linter file in their instruction (e.g., `...using the rules in @OTHER_RUNTIME.md`), that instruction overrides the default from the configuration file.
-3.  **Custom Tool Discovery:** If the `.aplconfig` file contains a `tool_paths` list, the runtime **MUST** scan those directories for any `*.tool.apl` files.
-    *   For each file found, parse the `tool_definition` and add the tool's `name` to the list of available tools for the duration of this execution.
-    *   If a custom tool name conflicts with a standard library tool name, the custom tool takes precedence.
+3.  **Custom Tool Discovery:** The runtime discovers tools in two stages:
+    *   **Global Tools:** If the `.aplconfig` file contains a `tool_paths` list, the runtime **MUST** scan those directories for any `*.tool.apl` files.
+    *   **Local Tools:** If the program file itself contains a `local_tool_paths` list, the runtime **MUST** scan those directories (relative to the program file) for any `*.tool.apl` files.
+    *   For each file found (both global and local), parse the `tool_definition` and add the tool's `name` to the list of available tools for the duration of this execution. If a local tool name conflicts with a global tool or a standard library tool, the local tool takes the highest precedence.
 4.  **Program Resolution:** The runtime is initiated with a path.
     *   If the path points directly to a file (e.g., `.../my_program.apl`), this file is the target program.
     *   If the path points to a directory (e.g., `.../my_module/`), the runtime **MUST** look for a file named `main.apl` inside that directory. If found, `main.apl` becomes the target program.
@@ -75,7 +76,9 @@ Each execution of an APL program is independent and atomic. You **MUST** start e
 4.  **Variable Injection:** Once the target program is identified, the runtime **MUST** determine its parent directory and inject the absolute path into the Execution Register as the `module_path` variable.
 5.  **Input Validation:** Before any other action, parse the `inputs` section of the target program. Compare the declared inputs against the parameters provided by the user or the calling `run_apl` tool. If any input with `required: true` is missing, you **MUST** halt immediately.
 6.  **Load and Parse:** Load the target program file. It will be in YAML format.
-7.  **Sequential Execution:** Execute the program's phases (`setup`, `main`, `finalize`, etc.) in the order they appear. Within each phase, execute the steps sequentially.
+7.  **Sequential Execution:** Execute the program's phases (`setup`, `main`, `finalize`, etc.) in the order they appear. Within each phase, execute the steps sequentially. Handle control flow structures as follows:
+    *   **`foreach` loop:** Execute the `run` block for each item in the collection. If the `FORCE_FULL_LOOP_EXECUTION` directive is present, you must follow the Self-Correction Protocol for Loops.
+    *   **`while` loop:** Before each iteration, evaluate the condition. If true, execute the `run` block. If false, skip the block and move to the next step after the loop.
 8.  **State Management:** For each step, resolve any `{{template}}` variables from the Execution Register before executing the tool. If a `register` key is present, save the step's output to the register under the given name.
 9.  **Tool Dispatch:**
     *   **Standard Tools (`shell`, `read_file`, etc.):** Execute the command exactly as specified and return its raw output.

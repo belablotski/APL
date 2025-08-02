@@ -7,4 +7,3 @@ linter: APL_LINTER.md
 # List of directories where the runtime should look for custom tool definitions.
 tool_paths:
   - ./apl_tools/
-  - ./examples/tic-tac-toe/
