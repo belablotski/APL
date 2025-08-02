@@ -1,6 +1,6 @@
 # APL: Agentic Programming Language
 
-APL is a high-level, declarative language designed to direct AI agents in complex software engineering and data analysis tasks. It provides a structured, predictable, and transparent way to orchestrate agent workflows, ensuring that tasks are executed reliably and deterministically.
+[APL](https://github.com/belablotski/apl) is a high-level, declarative language designed to direct AI agents in complex software engineering and data analysis tasks. It provides a structured, predictable, and transparent way to orchestrate agent workflows, ensuring that tasks are executed reliably and deterministically.
 
 The core value proposition of APL is **predictability**. While natural language is powerful, it can be ambiguous for an AI agent, leading to inconsistent results. APL replaces ambiguity with a clear, machine-readable program, transforming the agent from a creative assistant into a reliable, high-fidelity interpreter.
 
