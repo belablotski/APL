@@ -39,6 +39,7 @@
   inputs:
     - { name: "from", required: true }
     - { name: "by", required: true } # e.g., ["most innovative", "best code quality"]
+    - { name: "top_n", required: false }
   outputs:
     - { name: "result", description: "The ranked list of items." }
 
