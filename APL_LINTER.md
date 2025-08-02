@@ -44,6 +44,7 @@ These are issues that would almost certainly cause the program to fail during ex
 *   **Missing Input in `run_apl` Call:** A `run_apl` step fails to provide a value for an input that is marked as `required: true` in the sub-program.
 *   **Invalid Phase Structure:** The program uses phase names not defined in the language reference (e.g., `setup`, `main`, `finalize`).
 *   **Invalid `foreach` Loop:** The `in` variable for a `foreach` loop is not a known collection or is used before it's registered.
+*   **Unknown Directive:** A step specifies a `directive` that is not defined in the language reference.
 
 ### **[WARNING] Potential Problems**
 
@@ -53,6 +54,7 @@ These are issues that may not cause a crash but are signs of poor practice or lo
 *   **Unused Registered Variable:** A variable is saved with `register` but is never used in a subsequent step.
 *   **Use of Relative Paths:** A `read_file` or `write_file` step uses a relative path, which can be less robust.
 *   **Potentially Dangerous Shell Command:** The linter can be configured to warn about shell commands that contain potentially destructive operations like `rm -rf`.
+*   **Misplaced Directive:** The `FORCE_FULL_LOOP_EXECUTION` directive is used on a step that is not a `foreach` loop.
 
 ## 4. Example Linter Report
 

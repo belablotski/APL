@@ -37,6 +37,7 @@ main:
   foreach:
     in: repo_urls
     loop_var: repo_url
+    directives: [FORCE_FULL_LOOP_EXECUTION]
   run:
     - name: "Fetch last N merged PRs as a clean list"
       tool: shell

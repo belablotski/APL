@@ -182,6 +182,27 @@ main:
     # ... more steps ...
 ```
 
+#### Execution Directives (`directives`)
+
+Directives are special, non-functional instructions that provide hints or commands to the APL interpreter itself. They are used to modify the interpreter's behavior for a specific step, ensuring reliability or overriding default assumptions. They are analogous to pragmas in languages like C++.
+
+A `directives` list can be added to any step.
+
+```yaml
+main:
+  foreach:
+    in: pr_urls
+    loop_var: pr_url
+    directives:
+      - FORCE_FULL_LOOP_EXECUTION
+  run:
+    # ... steps ...
+```
+
+**Available Directives:**
+
+*   **`FORCE_FULL_LOOP_EXECUTION`**: This directive can only be used on a `foreach` step. It serves as a critical, high-priority instruction to the interpreter to execute every single iteration of the loop, from the first to the very last. This is a safeguard against a common failure mode where the AI might incorrectly assume a pattern and try to summarize or skip the remaining iterations. Its presence reinforces the "Guaranteed Full Loop Execution" rule defined in the `APL_RUNTIME.md`.
+
 #### `if` (Conditional Execution)
 
 A step can be executed conditionally by adding an `if` clause. The agent will evaluate the condition based on the current state in the register.

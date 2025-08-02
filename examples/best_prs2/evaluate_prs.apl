@@ -34,6 +34,7 @@ main:
   foreach:
     in: pr_urls
     loop_var: pr_url
+    directives: [FORCE_FULL_LOOP_EXECUTION]
   run:
     - name: "Fetch PR Metadata"
       tool: shell
