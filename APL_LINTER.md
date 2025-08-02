@@ -50,6 +50,7 @@ These are issues that would almost certainly cause the program to fail during ex
 
 These are issues that may not cause a crash but are signs of poor practice or logical flaws.
 
+*   **Missing Loop Execution Directive:** A `foreach` loop does not include the `FORCE_FULL_LOOP_EXECUTION` directive. While not a syntax error, its absence can lead to unreliable execution where the AI interpreter might skip iterations. It is strongly recommended to include this directive on all `foreach` loops.
 *   **Type Mismatch:** A tool that expects a list (like `foreach`) is given a variable that likely holds a single string (e.g., from `read_file`).
 *   **Unused Registered Variable:** A variable is saved with `register` but is never used in a subsequent step.
 *   **Use of Relative Paths:** A `read_file` or `write_file` step uses a relative path, which can be less robust.
